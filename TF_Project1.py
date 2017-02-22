@@ -3,15 +3,30 @@ import tensorflow as tf
 import numpy as np
 import math
 
+epochs = 80
 learning_rate = 0.001
 n_input = 784  # MNIST data input (img shape: 28*28 = 784)
 n_classes = 10  # MNIST total classes (0-9 digits)
 
 
+def print_epoch_stats(cost, features, labels, accuracy, valid_features, valid_labels, epoch_i, sess, last_features, last_labels):
+    """
+    Print cost and validation accuracy of an epoch
+    """
+    current_cost = sess.run(
+        cost,
+        feed_dict={features: last_features, labels: last_labels})
+    valid_accuracy = sess.run(
+        accuracy,
+        feed_dict={features: valid_features, labels: valid_labels})
+    print('Epoch: {:<4} - Cost: {:<8.3} Valid Accuracy: {:<5.3}'.format(
+        epoch_i,
+        current_cost,
+        valid_accuracy))
 
 def batches(batch_size, features, labels):
     """
-    Create batches of features and labels
+    Creates batches of features and labels
     :param batch_size: The batch size
     :param features: List of features
     :param labels: List of labels
@@ -34,9 +49,11 @@ def run():
 
 	# The features are already scaled and the data is shuffled
 	train_features = mnist.train.images
+	valid_features = mnist.validation.images
 	test_features = mnist.test.images
 
 	train_labels = mnist.train.labels.astype(np.float32)
+	valid_labels = mnist.validation.labels.astype(np.float32)
 	test_labels = mnist.test.labels.astype(np.float32)
 
 	# Features and Labels
@@ -65,26 +82,32 @@ def run():
 	accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
-	# TODO: Set batch size
+	#Set batch size
 	batch_size = 128
 	assert batch_size is not None, 'You must set the batch size'
+
+	input_batches = batches(batch_size, train_features, train_labels)
 
 	init = tf.global_variables_initializer()
 
 	with tf.Session() as sess:
 	    sess.run(init)
-	    
-	    # TODO: Train optimizer on all batches
-	    input_batches = batches(batch_size, train_features, train_labels)
-	    for batch_features, batch_labels in input_batches:
-	        sess.run(optimizer, feed_dict={features: batch_features, labels: batch_labels})
+	    		    
 
-	    # Calculate accuracy for test dataset
-	    test_accuracy = sess.run(
-	        accuracy,
-	        feed_dict={features: test_features, labels: test_labels})
+	    #Training cycle
+	    for epoch_i in range(epochs):
+		    #Train optimizer on all batches
+	    	for batch_features, batch_labels in input_batches:
+	        	sess.run(optimizer, feed_dict={features: batch_features, labels: batch_labels})
 
+	    	# Calculate accuracy for test dataset
+	    	test_accuracy = sess.run(
+	        	accuracy,
+	        	feed_dict={features: test_features, labels: test_labels})
+	    	print_epoch_stats(cost, features, labels, accuracy, valid_features, valid_labels, epoch_i, sess, batch_features, batch_labels)
+	
 	print('Test Accuracy: {}'.format(test_accuracy))
+
 
 
 
